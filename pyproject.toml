@@ -1,0 +1,14 @@
+[project]
+name = "capstone"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "dotenv>=0.9.9",
+    "jupyter>=1.1.1",
+    "pandas>=2.3.1",
+    "requests>=2.32.4",
+    "sodapy>=2.2.0",
+]
