@@ -15,4 +15,4 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 # At the end of logging_config.py
-__all__ = ['logger']print(f"Error connecting to database: {e}")
+__all__ = ['logger']

@@ -1,0 +1,6 @@
+pytest
+notebook
+pyspark==3.3.2
+dotenv
+boto3
+requests
