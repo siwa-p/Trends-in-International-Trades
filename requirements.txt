@@ -1,6 +1,9 @@
+# use python3.10
+numpy==1.26.4
+pandas==1.5.3
+pyspark==3.3.2
 pytest
 notebook
-pyspark==3.3.2
 dotenv
 boto3
 requests

@@ -3,8 +3,6 @@ from utils.logger_config import logger
 import os
 from dotenv import load_dotenv
 from utils.spark_connection import get_spark_session
-import tempfile
-import csv
 load_dotenv()
 API_KEY = os.getenv("CENSUS_API_KEY")
 # total export value by port for the month of January 2025
@@ -27,7 +25,7 @@ def get_daily_data(year, month):
         return None
 
 def ingest_data(spark):
-    for year in [2020, 2021, 2022, 2023, 2024, 2025]:
+    for year in range(2015, 2021):
         for month in range(1, 13):
             data = get_daily_data(year, month)
             if not data:
@@ -36,24 +34,43 @@ def ingest_data(spark):
             write_iceberg(data, spark)
             logger.info(f"Data for {year}-{str(month).zfill(2)} ingested successfully")
     return logger.info("Data ingestion completed.")
-                
+
+def create_iceberg_table(spark):
+    spark.sql("""
+    CREATE TABLE IF NOT EXISTS nessie.total_export_value_by_port (
+        YEAR INT,
+        MONTH INT,
+        CTY_CODE INT,
+        CTY_NAME STRING,
+        PORT STRING,
+        PORT_NAME STRING,
+        ALL_VAL_MO LONG
+    ) USING ICEBERG
+    PARTITIONED BY (YEAR, MONTH)
+    """)
+    logger.info("Iceberg table 'total_export_value_by_port' created or already exists.")
+             
 def write_iceberg(data, spark):
-    with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as tmpfile:
-        writer = csv.writer(tmpfile)
-        writer.writerows(data)
-        tmp_path = tmpfile.name
-    spark_df = spark.read.csv(tmp_path, header=True, inferSchema=True)
+    # data[0] contains column names, data[1:] contains rows
+    columns = data[0]
+    rows = data[1:]
+    spark_df = spark.createDataFrame(rows, schema=columns)
+    spark_df = spark_df.withColumn("YEAR", spark_df["YEAR"].cast("int")) \
+                       .withColumn("MONTH", spark_df["MONTH"].cast("int")) \
+                       .withColumn("CTY_CODE", spark_df["CTY_CODE"].cast("int")) \
+                       .withColumn("ALL_VAL_MO", spark_df["ALL_VAL_MO"].cast("long"))
     spark_df.createOrReplaceTempView("temp_new_data")
     spark.sql("""
     MERGE INTO nessie.total_export_value_by_port t
     USING temp_new_data n
-    ON t.year = n.year AND t.month = n.month AND t.port = n.port AND t.cty_code = n.cty_code
+    ON t.YEAR = n.YEAR AND t.MONTH = n.MONTH AND t.PORT = n.PORT AND t.CTY_CODE = n.CTY_CODE
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
     """)
 
 if __name__ == "__main__":
     spark = get_spark_session()
+    create_iceberg_table(spark)
     data = ingest_data(spark)
     if data is not None:
         write_iceberg(data, spark)
