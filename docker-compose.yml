@@ -1,0 +1,92 @@
+services:
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+    container_name: dremio
+    environment:
+      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+    networks:
+      - iceberg_env
+    volumes:
+      - dremio_data:/opt/dremio/data
+  minioserver:
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    networks:
+      - iceberg_env
+    volumes:
+      - minio_data:/var/lib/minio/data
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    container_name: minio
+    command: server /data --console-address ":9001"
+
+  spark_notebook:
+    image: tabulario/spark-iceberg
+    container_name: spark-iceberg
+    build: spark/
+    networks:
+      - iceberg_env
+    volumes:
+      - ./notebooks:/home/iceberg/notebooks/notebooks
+    env_file:
+      - .env
+    ports:
+      - 8888:8888
+      - 8080:8080
+      - 10000:10000
+      - 10001:10001
+      - 4040-4042:4040-4042
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=nessie
+      - POSTGRES_PASSWORD=nessie
+      - POSTGRES_DB=trade_db
+    networks:
+      - iceberg_env
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trade_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  nessie:
+    image: projectnessie/nessie
+    container_name: nessie
+    environment:
+      - QUARKUS_OTEL_SDK_DISABLED=true
+      - NESSIE_VERSION_STORE_TYPE=JDBC
+      - QUARKUS_DATASOURCE_DB_KIND=postgresql
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/trade_db
+      - QUARKUS_DATASOURCE_USERNAME=nessie
+      - QUARKUS_DATASOURCE_PASSWORD=nessie
+    networks:
+      - iceberg_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "19120:19120"
+
+volumes:
+  dremio_data:
+  minio_data:
+  postgres_data:
+  notebooks:
+
+
+networks:
+  iceberg_env:
+    driver: bridge
