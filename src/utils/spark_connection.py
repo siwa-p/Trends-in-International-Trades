@@ -1,17 +1,13 @@
 from pyspark.sql import SparkSession
-from logger_config import logger
+from utils.logger_config import logger
 import pyspark
 import os
 from dotenv import load_dotenv
-load_dotenv()
-
-# NESSIE_URI = os.environ.get("NESSIE_URI")
-# NESSIE_URI = "http://172.19.0.4:19120/api/v1"
+load_dotenv(override=True)
 NESSIE_URI = "http://localhost:19120/api/v1"
 WAREHOUSE = os.environ.get("WAREHOUSE")  
 AWS_ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY")
 AWS_SECRET_KEY = os.environ.get("AWS_SECRET_KEY")
-# AWS_S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT")
 AWS_S3_ENDPOINT = "http://localhost:9000"
 conf = (
     pyspark.SparkConf()
@@ -51,9 +47,9 @@ def get_spark_session():
     return spark
 
 def main():
-    # Initialize SparkSession
     spark = get_spark_session()
-    spark.sql("SHOW TABLES IN nessie.default").show()
+    spark.sql("SHOW NAMESPACES IN nessie").show()
+    spark.sql("SHOW TABLES IN nessie").show()
     spark.stop()
     logger.info("Spark Session stopped.")
 
