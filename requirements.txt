@@ -7,3 +7,4 @@ notebook
 dotenv
 boto3
 requests
+minio
