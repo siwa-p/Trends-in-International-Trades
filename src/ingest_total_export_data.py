@@ -6,14 +6,20 @@ from utils.spark_connection import get_spark_session
 load_dotenv()
 API_KEY = os.getenv("CENSUS_API_KEY")
 # total export value by port for the month of January 2025
-url = "https://api.census.gov/data/timeseries/intltrade/exports/porths"
+base_url = "https://api.census.gov/data/timeseries/intltrade"
+e_endpoint = "exports"
+i_endpoint = "imports"
+data_type = "porths"
+
+url = '/'.join([base_url, e_endpoint, data_type])
 
 def get_monthly_data(year, month):
     try:
         params = {
             "YEAR": str(year),
             "MONTH": str(month).zfill(2),
-            "get": "CTY_CODE,CTY_NAME,PORT,PORT_NAME,ALL_VAL_MO",
+            "get": "CTY_CODE,CTY_NAME,PORT,PORT_NAME,GEN_VAL_MO, AIR_VAL_MO, ALL_VAL_MO, AIR_WGT_MO",
+            "SUMMARY_LVL": "DET",
             "key": API_KEY
         }
         response = requests.get(url, params=params)
