@@ -2,8 +2,10 @@
 numpy==1.26.4
 pandas==1.5.3
 pyspark==3.3.2
+pyarrow
 pytest
 notebook
 dotenv
 boto3
 requests
+minio
