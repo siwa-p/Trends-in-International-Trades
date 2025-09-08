@@ -31,7 +31,6 @@ services:
   spark_notebook:
     image: tabulario/spark-iceberg
     container_name: spark-iceberg
-    build: spark/
     networks:
       - iceberg_env
     volumes:

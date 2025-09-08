@@ -1,0 +1,14 @@
+dbt_trade:
+  outputs:
+    dev:
+      type: dremio
+      database: trade
+      object_storage_path: no_schema
+      object_storage_source: trade
+      password: password-9
+      port: 9047
+      software_host: localhost
+      threads: 4
+      use_ssl: false
+      user: admin
+  target: dev
