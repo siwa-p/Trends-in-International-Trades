@@ -12,11 +12,16 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 
 - **U.S. Census Bureau International Trade API**: Provides detailed import and export data by country, commodity, and time period.  
   - [API Documentation](https://www.census.gov/data/developers/data-sets/international-trade.html)
-- **The United States Department of Agriculture (USDA) Global Agricultural Trade System (GATS) DATA API** provides comprehensive data on agricultural imports and exports. This includes information on commodities, trading partners, quantities, and values over time.  
-  - [USDA GATS DATA API Documentation](https://apps.fas.usda.gov/gats/default.aspx)  
-- **Eurostat International Trade Database** provides trade data from EU countries.
-  - [Eurostat](https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access) has accessible api
-- **The United States Trade Representative (USTR) Press Releases** to scrape tarrif announcements among other things
+  - Classification System of choice:
+    - Harmonized System (HS)
+  - Data types:
+    - Port level: PORT, COUNTRY, COMMODITY, MONTHLY AGGREGATED VALUES, MODE OF TRANSPORTATION
+    - State Level: ---
+- **World Integrated Trade Solution Rest (WITS) API**
+  - [Documentation](https://wits.worldbank.org/witsapiintro.aspx?lang=en#Trade)
+  - United Nations Conference on Trade and Development (UNCTAD) Trade Analysis Information System (Trains) data : Extensive tariff information 
+  - Trade Stats - Trade : COUNTRY AND PRODUCT level annual aggregate data
+  - Trade Stats - Tariff data: COUNTRY AND PRODUCT level aggregate  tariff (%)
 
 ### Project Objectives
 
@@ -31,7 +36,7 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 
 - **Data Ingestion & Processing**: Python Scripts, Pandas
 - **Data Storage**: MINIO (Raw data lake) in parquet format.
-- **SQL Engine & Table Format**: Apache Spark SQL with Iceberg tables for scalable, reliable, and ACID-compliant data storage and querying
+- **Table Format**: Iceberg tables for scalable, reliable, and ACID-compliant data storage and querying
 - **Data Transformation & Modeling**: dbt (Data Build Tool) for version-controlled data transformations ( bronze -- silver -- gold)
 - **Prefect** Orchestration. Automate the data ingestion and transformation
 - **API Development**: FastAPI
@@ -43,10 +48,10 @@ The project workflow is divided into two main components:
 
 #### 1. Data Ingestion, Processing, and Transformation
 
-- **Containerized Environment**: All core data engineering tools (MinIO, Apache Spark, dbt, Prefect) are orchestrated within a single development container for streamlined deployment and reproducibility.
-- **Data Ingestion**: Prefect orchestrates scheduled extraction of raw data from external APIs (U.S. Census Bureau, USDA GATS, Eurostat) and web scraping for tariff announcements.
+- **Containerized Environment**: All core data engineering tools (MinIO, Dremio, dbt, Prefect) are orchestrated for streamlined deployment and reproducibility.
+- **Data Ingestion**: Prefect orchestrates scheduled extraction of raw data from external APIs (U.S. Census, WITS).
 - **Raw Data Storage**: Ingested data is stored in MinIO as parquet files, forming the raw data lake.
-- **Data Processing & Transformation**: Apache Spark processes raw data into iceberg tables, and dbt manages transformations through bronze, silver, and gold layers, ensuring clean, reliable, and analytics-ready tables.
+- **Data Processing & Transformation**: Dremio UI is uset to write raw data into iceberg tables, and dbt manages transformations through bronze, silver, and gold layers, ensuring clean, reliable, and analytics-ready tables.
 
 #### 2. API and Dashboard
 
