@@ -43,3 +43,37 @@
 #     except Exception as e:
 #         logger.info(f"Error fetching datastructure: {e}")
 #         raise e
+
+
+def create_iceberg_table(spark):
+    spark.sql("""
+    CREATE TABLE IF NOT EXISTS nessie.total_export_value_by_port (
+        YEAR INT,
+        MONTH INT,
+        CTY_CODE INT,
+        CTY_NAME STRING,
+        PORT STRING,
+        PORT_NAME STRING,
+        ALL_VAL_MO LONG
+    ) USING ICEBERG
+    PARTITIONED BY (YEAR, MONTH)
+    """)
+    logger.info("Iceberg table 'total_export_value_by_port' created or already exists.")
+             
+def write_iceberg(data, spark):
+    columns = data[0]
+    rows = data[1:]
+    spark_data = spark.createDataFrame(rows, schema=columns)
+    spark_data = spark_data.withColumn("YEAR", spark_data["YEAR"].cast("int")) \
+                       .withColumn("MONTH", spark_data["MONTH"].cast("int")) \
+                       .withColumn("CTY_CODE", spark_data["CTY_CODE"].cast("int")) \
+                       .withColumn("ALL_VAL_MO", spark_data["ALL_VAL_MO"].cast("long"))
+    spark_data = spark_data.dropDuplicates(["YEAR", "MONTH", "PORT", "CTY_CODE"])
+    spark_data.createOrReplaceTempView("temp_new_data")
+    spark.sql("""
+    MERGE INTO nessie.total_export_value_by_port t
+    USING temp_new_data n
+    ON t.YEAR = n.YEAR AND t.MONTH = n.MONTH AND t.PORT = n.PORT AND t.CTY_CODE = n.CTY_CODE
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+    """)
