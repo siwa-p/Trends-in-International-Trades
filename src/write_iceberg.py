@@ -4,6 +4,7 @@ from pyspark.sql.functions import sha2, concat_ws
 from minio import Minio
 import io
 import os
+from functools import reduce
 import pandas as pd
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -18,9 +19,9 @@ def get_data_from_lake(minio_client, bucket_name, object_name):
         logger.error(f"Failed to fetch data from MinIO: {e}")
         raise
 
-def get_list_of_objects(minio_client,bucket_name):
+def get_list_of_objects(minio_client,bucket_name,prefix=None):
     try:
-        objects = minio_client.list_objects(bucket_name)
+        objects = minio_client.list_objects(bucket_name, prefix)
         object_list = [obj.object_name for obj in objects]
         logger.info(f"List of objects fetched from MinIO bucket {bucket_name}")
         return object_list
@@ -44,20 +45,35 @@ def create_iceberg_tables(spark):
     PARTITIONED BY (TIME_PERIOD)
     """)
     spark.sql("""
-              CREATE TABLE IF NOT EXISTS nessie.wits_tariff_data (
-                    FREQ STRING,
-                    REPORTER STRING,
-                    PARTNER STRING,
-                    PRODUCTCODE STRING,
-                    INDICATOR STRING,
-                    TIME_PERIOD INT,
-                    DATASOURCE STRING,
-                    OBS_VALUE LONG,
-                    ROW_HASH STRING
-                ) USING ICEBERG
-                PARTITIONED BY (TIME_PERIOD)
-              """
-              )
+    CREATE TABLE IF NOT EXISTS nessie.wits_tariff_data (
+        FREQ STRING,
+        REPORTER STRING,
+        PARTNER STRING,
+        PRODUCTCODE STRING,
+        INDICATOR STRING,
+        TIME_PERIOD INT,
+        DATASOURCE STRING,
+        OBS_VALUE LONG,
+        ROW_HASH STRING
+    ) USING ICEBERG
+    PARTITIONED BY (TIME_PERIOD)
+    """
+    )
+    spark.sql("""
+    CREATE TABLE IF NOT EXISTS nessie.wits_tariff_data (
+        FREQ STRING,
+        REPORTER STRING,
+        PARTNER STRING,
+        PRODUCTCODE STRING,
+        INDICATOR STRING,
+        TIME_PERIOD INT,
+        DATASOURCE STRING,
+        OBS_VALUE LONG,
+        ROW_HASH STRING
+    ) USING ICEBERG
+    PARTITIONED BY (TIME_PERIOD)
+    """
+    )
     
     logger.info("Iceberg table 'wits_trade_data' created or already exists.")
     logger.info("Iceberg table 'wits_tariff_data' created or already exists.")         
@@ -101,8 +117,24 @@ def main():
         secure=False
     )
     objects_list = get_list_of_objects(minio_client, os.getenv("MINIO_BUCKET_NAME"))
-    trade_data_objects = [object.split('.')[0] for object in objects_list if 'trade' in object]
-    tariff_data_objects = [object.split('.')[0] for object in objects_list if 'tariff' in object]
+    parquet_files = [item for item in objects_list if item.endswith('.parquet')]
+    trade_port_path = [item for item in objects_list if item.startswith('trade_data_port/')][0]
+    # read files within wits-data/trade_data_port
+    trade_port_objects = get_list_of_objects(minio_client, os.getenv("MINIO_BUCKET_NAME"), prefix = trade_port_path)
+    import_port_files = [item for item in trade_port_objects if 'total_import_value_by_port_' in item]
+    export_port_files = [item for item in trade_port_objects if 'total_export_value_by_port_' in item]
+    export_dataframes = [get_data_from_lake(minio_client, os.getenv("MINIO_BUCKET_NAME"),file) for file in export_port_files]
+    spark.sql("CREATE NAMESPACE IF NOT EXISTS wits")
+    spark_dfs = [spark.createDataFrame(pdf) for pdf in export_dataframes]
+    combined_df = reduce(lambda a, b: a.unionByName(b), spark_dfs)
+    (
+        combined_df.writeTo("nessie.wits.total_export_value_by_port")
+        .using("iceberg")
+        .append()
+    )
+
+    trade_data_objects = [object.split('.')[0] for object in parquet_files if 'trade' in object]
+    tariff_data_objects = [object.split('.')[0] for object in parquet_files if 'tariff' in object]
     for trade_object in trade_data_objects:
         trade_data = get_data_from_lake(minio_client, os.getenv("MINIO_BUCKET_NAME"), f"{trade_object}.parquet")
         write_trade_iceberg(trade_data, spark)
