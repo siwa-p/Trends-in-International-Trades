@@ -1,5 +1,9 @@
 from minio import Minio
 import io
+import sys
+from pathlib import Path
+parent_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(parent_dir))
 from utils.logger_config import logger
 import pandas as pd
 import pyspark
@@ -36,6 +40,7 @@ def create_spark_session():
             .config("spark.sql.catalog.nessie.s3.region", "us-east-1") \
             .getOrCreate()
     return spark
+
 
 def get_minio_client(minio_url, minio_access_key, minio_secret_key):
     try:
