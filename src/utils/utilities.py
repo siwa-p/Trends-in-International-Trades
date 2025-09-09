@@ -2,6 +2,40 @@ from minio import Minio
 import io
 from utils.logger_config import logger
 import pandas as pd
+import pyspark
+from pyspark.sql import SparkSession
+
+def create_spark_session():
+    url = "http://localhost:19120/api/v2"
+    full_path_to_warehouse = "s3://warehouse/"
+    ref = "main"
+    auth_type = "NONE"
+    spark = SparkSession.builder \
+        .config("spark.jars.packages",
+                "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.9.2,"
+                "org.projectnessie.nessie-integrations:nessie-spark-extensions-3.5_2.12:0.103.3,"
+                "software.amazon.awssdk:bundle:2.20.158,"
+                "org.apache.hadoop:hadoop-aws:3.3.4") \
+            .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")\
+            .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions") \
+            .config("spark.sql.catalog.nessie.uri", url) \
+            .config("spark.sql.catalog.nessie.ref", ref) \
+            .config("spark.sql.catalog.nessie.authentication.type", auth_type) \
+            .config("spark.sql.catalog.nessie.catalog-impl", "org.apache.iceberg.nessie.NessieCatalog") \
+            .config("spark.sql.catalog.nessie.warehouse", full_path_to_warehouse) \
+            .config("spark.sql.catalog.nessie", "org.apache.iceberg.spark.SparkCatalog") \
+            .config("spark.sql.catalog.nessie.s3.endpoint", "http://localhost:9000") \
+            .config("spark.hadoop.fs.s3a.access.key", "admin") \
+            .config("spark.hadoop.fs.s3a.secret.key", "password") \
+            .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
+            .config("spark.hadoop.fs.s3a.path.style.access", True) \
+            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+            .config("spark.sql.catalog.nessie.s3.access-key-id", "admin") \
+            .config("spark.sql.catalog.nessie.s3.secret-access-key", "password") \
+            .config("spark.sql.catalog.nessie.s3.path-style-access", True) \
+            .config("spark.sql.catalog.nessie.s3.region", "us-east-1") \
+            .getOrCreate()
+    return spark
 
 def get_minio_client(minio_url, minio_access_key, minio_secret_key):
     try:
