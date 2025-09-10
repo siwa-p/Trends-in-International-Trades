@@ -2,11 +2,13 @@
     materialized='table',
     on_schema_change = 'ignore',
     format='iceberg',
-    schema='silver'
+    schema='silver',
+    partition_by=['bucket(32, CTY_NAME)', 'EXPORT_YEAR']
 ) }}
 SELECT
     CASE WHEN NULLIF(PORT, '-') IS NOT NULL THEN CAST(PORT AS INT) ELSE NULL END AS PORT,
     CASE WHEN NULLIF(CTY_CODE, '-') IS NOT NULL THEN CAST(CTY_CODE AS INT) ELSE NULL END AS CTY_CODE,
+    CTY_NAME,
     CAST(E_COMMODITY AS INT) AS E_COMMODITY,
     E_COMMODITY_SDESC,
     CAST(ALL_VAL_MO AS DOUBLE) AS ALL_VAL_MO,

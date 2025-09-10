@@ -27,9 +27,32 @@ async def healthcheck():
 
 
 @app.get("/wits_tariff")
-async def read_wits_tariff(limit: int = 10):
+async def read_wits_tariff(
+    offset: int = 0,
+    limit: int = 10,
+    partner: str = None,
+    tariff_indicator: str = None,
+    year: int = None
+):
     try:
-        query = f"SELECT * FROM nessie.silver.bronze_wits_tariff LIMIT {limit}"
+        filters = []
+        if partner:
+            filters.append(f"PARTNER = '{partner}'")
+        if tariff_indicator:
+            filters.append(f"INDICATOR = '{tariff_indicator}'")
+        if year:
+            filters.append(f"TIME_PERIOD = {year}")
+
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+
+        query = f"""
+            SELECT *
+            FROM nessie.silver.bronze_wits_tariff
+            {where_clause}
+            LIMIT {limit} OFFSET {offset}
+        """
         tariff = spark.sql(query)
         tariff_pd = tariff.toPandas()
         return tariff_pd.to_dict(orient="records")
@@ -52,6 +75,7 @@ async def read_port_data(limit: int = 10):
 if __name__ == '__main__':
     import time
     start = time.time()
-    asyncio.run(read_port_data())
+    asyncio.run(read_wits_tariff())
+    # asyncio.run(read_port_data())
     end = time.time()
     print(f"Time taken: {end - start} seconds")

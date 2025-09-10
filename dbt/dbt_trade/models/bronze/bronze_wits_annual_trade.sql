@@ -2,7 +2,8 @@
     materialized='table',
     on_schema_change = 'ignore',
     format='iceberg',
-    schema='silver'
+    schema='silver',
+    partition_by=['PARTNER', 'TIME_PERIOD']
 ) }}
 
 SELECT
