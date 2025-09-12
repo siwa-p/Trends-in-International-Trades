@@ -3,14 +3,14 @@
     on_schema_change = 'ignore',
     format='iceberg',
     schema='silver',
-    partition_by=['PARTNER', 'TIME_PERIOD'],
+    partition_by=['PARTNER_CTY', 'TIME_PERIOD'],
 ) }}
 
 
 SELECT
     FREQ,
     REPORTER,
-    PARTNER,
+    "PARTNER" AS PARTNER_CTY,
     PRODUCTCODE,
     "INDICATOR" AS TARIFF_INDICATOR,
     CAST(TIME_PERIOD AS INT) AS TIME_PERIOD,

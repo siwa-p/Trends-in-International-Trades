@@ -3,11 +3,11 @@
     on_schema_change = 'ignore',
     format='iceberg',
     schema='silver',
-    partition_by=['bucket(32, CTY_NAME)', 'EXPORT_YEAR', 'STATE']
+    partition_by=['bucket(32, CTY_NAME)', 'EXPORT_YEAR', 'STATE_ID']
 ) }}
 
 SELECT
-    STATE,
+    "STATE" as STATE_ID,
     CASE WHEN NULLIF(CTY_CODE, '-') IS NOT NULL THEN CAST(CTY_CODE AS INT) ELSE NULL END AS CTY_CODE,
     CTY_NAME,
     CAST(E_COMMODITY AS INT) AS E_COMMODITY,

@@ -89,3 +89,12 @@ def upload_parquet(minio_client, bucket_name, dataframe, object_name):
     )
     logger.info(f"DataFrame uploaded to MinIO bucket {bucket_name} as {full_object_name}")
   
+def get_csv_from_lake(minio_client, bucket_name, object_name):
+    try:
+        response = minio_client.get_object(bucket_name, object_name)
+        data = pd.read_csv(io.BytesIO(response.read()), encoding='latin1')
+        logger.info(f"CSV data fetched from MinIO bucket {bucket_name} as {object_name}")
+        return data
+    except Exception as e:
+        logger.error(f"Failed to fetch CSV data from MinIO: {e}")
+        raise

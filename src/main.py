@@ -26,20 +26,18 @@ async def healthcheck():
     return {"status": "ok", "datetime": datetime.utcnow().isoformat()}
 
 
-@app.get("/wits_tariff")
-async def read_wits_tariff(
+@app.get("/wits_tariff_trade")
+async def read_wits_trade_tariff(
+    data_type: str = "annual_trade",
     offset: int = 0,
     limit: int = 10,
     partner: str = None,
-    tariff_indicator: str = None,
     year: int = None
 ):
     try:
         filters = []
         if partner:
-            filters.append(f"PARTNER = '{partner}'")
-        if tariff_indicator:
-            filters.append(f"INDICATOR = '{tariff_indicator}'")
+            filters.append(f"PARTNER_CTY = '{partner}'")
         if year:
             filters.append(f"TIME_PERIOD = {year}")
 
@@ -49,7 +47,7 @@ async def read_wits_tariff(
 
         query = f"""
             SELECT *
-            FROM nessie.silver.bronze_wits_tariff
+            FROM nessie.silver.bronze_wits_{data_type}
             {where_clause}
             LIMIT {limit} OFFSET {offset}
         """
@@ -57,25 +55,80 @@ async def read_wits_tariff(
         tariff_pd = tariff.toPandas()
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
-        logger.error(f"Error reading WITS tariff data: {e}")
+        logger.error(f"Error reading WITS {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/port_import")
-async def read_port_data(limit: int = 10):
+@app.get("/port_import_export")
+async def read_port_data(
+    data_type: str = "import",
+    country_name: str = None,
+    year: int = None,
+    limit: int = 10,
+    offset: int = 0
+    ):
     try:
-        query = f"SELECT * FROM nessie.silver.bronze_port_import LIMIT {limit}"
+        filters = []
+        if country_name:
+            filters.append(f"CTY_NAME = '{country_name}'")
+        if year:
+            if data_type == "export":
+                filters.append(f"EXPORT_YEAR = {year}")
+            else:
+                filters.append(f"IMPORT_YEAR = {year}")
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+        query = f"""SELECT * FROM nessie.silver.bronze_port_{data_type} 
+                    {where_clause}
+                    LIMIT {limit} OFFSET {offset}
+                """
         tariff = spark.sql(query)
         tariff_pd = tariff.toPandas()
         tariff_pd = tariff_pd.fillna('-')
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
-        logger.error(f"Error reading bronze port level data: {e}")
+        logger.error(f"Error reading bronze port level {data_type} data: {e}")
+        return {"error": str(e)}
+
+@app.get("/state_import_export")
+async def read_state_data(
+    data_type: str = "import",
+    country_name: str = None,
+    year: int = None,
+    state: str = None,
+    limit: int = 10,
+    offset: int = 0
+    ):
+    try:
+        filters = []
+        if country_name:
+            filters.append(f"CTY_NAME = '{country_name}'")
+        if state:
+            filters.append(f"STATE_ID = '{state}'")
+        if year:
+            if data_type == "export":
+                filters.append(f"EXPORT_YEAR = {year}")
+            else:
+                filters.append(f"IMPORT_YEAR = {year}")
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+        query = f"""SELECT * FROM nessie.silver.bronze_state_{data_type} 
+                    {where_clause}
+                    LIMIT {limit} OFFSET {offset}
+                """
+        tariff = spark.sql(query)
+        tariff_pd = tariff.toPandas()
+        tariff_pd = tariff_pd.fillna('-')
+        return tariff_pd.to_dict(orient="records")
+    except Exception as e:
+        logger.error(f"Error reading bronze state level {data_type} data: {e}")
         return {"error": str(e)}
 
 if __name__ == '__main__':
     import time
     start = time.time()
-    asyncio.run(read_wits_tariff())
+    asyncio.run(read_wits_trade_tariff())
     # asyncio.run(read_port_data())
     end = time.time()
     print(f"Time taken: {end - start} seconds")

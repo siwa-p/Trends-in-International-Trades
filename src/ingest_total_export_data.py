@@ -4,8 +4,6 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 from utils.utilities import get_minio_client, upload_csv, upload_parquet
-import pandas as pd
-from utils.utilities import get_minio_client, upload_csv, upload_parquet
 load_dotenv()
 API_KEY = os.getenv("CENSUS_API_KEY")
 base_url = "https://api.census.gov/data/timeseries/intltrade"

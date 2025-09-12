@@ -8,9 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 base_endpoint = "https://wits.worldbank.org/API/V1/SDMX/V21/rest" 
-datastructure_ids = ['DF_WITS_Tariff_TRAINS', 'DF_WITS_TradeStats_Development', 'DF_WITS_TradeStats_Tariff', 'DF_WITS_TradeStats_Trade']
+# datastructure_ids = ['DF_WITS_Tariff_TRAINS', 'DF_WITS_TradeStats_Development', 'DF_WITS_TradeStats_Tariff', 'DF_WITS_TradeStats_Trade']
 dimension_list = ['FREQ', 'REPORTER', 'PARTNER', 'PRODUCTCODE', 'INDICATOR']
-country_list = ['India', 'China', 'United States', 'Germany', 'United Kingdom', 'France', 'Italy', 'Canada', 'Australia', 'Brazil']
 query = {k:None for k in dimension_list}
 
 def getCodelist(codelist):

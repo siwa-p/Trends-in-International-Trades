@@ -14,3 +14,6 @@ minio
 sqlalchemy
 psycopg2-binary
 fastapi[standard]
+streamlit
+plotly
+xmltodict
