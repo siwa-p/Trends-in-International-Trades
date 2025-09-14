@@ -1,9 +1,8 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['bucket(32, CTY_NAME)', 'EXPORT_YEAR']
+    schema='staged',
+    database = 'nessie'
 ) }}
 SELECT
     CASE WHEN NULLIF(PORT, '-') IS NOT NULL THEN CAST(PORT AS INT) ELSE NULL END AS PORT,
@@ -22,4 +21,4 @@ SELECT
     CAST("MONTH" AS INT) AS EXPORT_MONTH
     -- CASE WHEN NULLIF(LAST_UPDATE, '0') IS NOT NULL THEN CAST(LAST_UPDATE AS DATE) ELSE NULL END AS LAST_UPDATE
     -- 0, 127 WERE THE TWO DISTINCT VALUES FOR LAST_UPDATE
-FROM trade.export.port_lvl_data
+FROM nessie.silver.raw_export_port at BRANCH main

@@ -1,0 +1,24 @@
+services:
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+    container_name: dremio
+    environment:
+      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+      - DREMIO_MAX_HEAP_MEMORY_SIZE_MB=8192
+      - DREMIO_MAX_DIRECT_MEMORY_SIZE_MB=16384
+    networks:
+      - iceberg
+    volumes:
+      - dremio_data:/opt/dremio/data
+      
+volumes:
+  dremio_data:
+
+networks:
+  iceberg:
+    driver: bridge

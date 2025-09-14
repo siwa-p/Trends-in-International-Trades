@@ -31,14 +31,11 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   dbt_trade:
-    # Config indicated by + and applies to all files under models/example/
+    +database: nessie
     models:
-      bronze:
-        +schema: bronze
+      raw:
+        +schema: raw
         +materialized: table
-      silver:
-        +schema: silver
-        +materialized: view
-      gold:
-        +schema: gold
+      staged:
+        +schema: staged
         +materialized: view

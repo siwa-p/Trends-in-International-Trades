@@ -37,10 +37,12 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 - **Data Ingestion & Processing**: Python Scripts, Pandas
 - **Data Storage**: MINIO (Raw data lake) in parquet format.
 - **Table Format**: Iceberg tables for scalable, reliable, and ACID-compliant data storage and querying
-- **Data Transformation & Modeling**: dbt (Data Build Tool) for version-controlled data transformations ( bronze -- silver -- gold)
-- **Prefect** Orchestration. Automate the data ingestion and transformation
+- **Data Transformation & Modeling**: 
+  - dbt (Data Build Tool) for version-controlled data transformations ( bronze -- silver -- gold)
+  - Partitioning and bucketing for faster query
+- **Prefect** Orchestration. Automate the *data ingestion* and transformation
 - **API Development**: FastAPI
-- **Dashboard Visualization**: Superset/Streamlit
+- **Dashboard Visualization**: Streamlit
 
 ### Workflow
 

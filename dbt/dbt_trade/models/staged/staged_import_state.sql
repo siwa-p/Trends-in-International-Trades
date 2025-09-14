@@ -1,12 +1,11 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['bucket(32, CTY_NAME)', 'IMPORT_YEAR']
+    schema='staged',
+    database = 'nessie'
 ) }}
 SELECT
-    CASE WHEN NULLIF(PORT, '-') IS NOT NULL THEN CAST(PORT AS INT) ELSE NULL END AS PORT,
+    "STATE" AS STATE_ID,
     CASE WHEN NULLIF(CTY_CODE, '-') IS NOT NULL THEN CAST(CTY_CODE AS INT) ELSE NULL END AS CTY_CODE,
     CTY_NAME,
     CAST(I_COMMODITY AS INT) AS I_COMMODITY,
@@ -22,4 +21,4 @@ SELECT
     CAST("MONTH" AS INT) AS IMPORT_MONTH
     -- CAST("LAST_UPDATE" AS DATE) AS LAST_UPDATE
     -- CASE WHEN NULLIF(LAST_UPDATE, '0') IS NOT NULL THEN CAST(LAST_UPDATE AS DATE) ELSE NULL END AS LAST_UPDATE
-FROM trade."import".port_lvl_data
+FROM nessie.silver.raw_import_state at BRANCH main

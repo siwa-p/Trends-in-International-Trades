@@ -1,0 +1,22 @@
+services:
+  minioserver:
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    networks:
+      - iceberg
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    container_name: minio
+    command: server /data --console-address ":9001"
+
+volumes:
+  minio_data:
+
+networks:
+  iceberg:
+    driver: bridge

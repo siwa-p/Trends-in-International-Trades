@@ -1,25 +1,25 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['bucket(32, CTY_NAME)', 'IMPORT_YEAR', 'STATE']
+    schema='staged',
+    database = 'nessie'
 ) }}
+
 SELECT
-    STATE,
+    "STATE" as STATE_ID,
     CASE WHEN NULLIF(CTY_CODE, '-') IS NOT NULL THEN CAST(CTY_CODE AS INT) ELSE NULL END AS CTY_CODE,
     CTY_NAME,
-    CAST(I_COMMODITY AS INT) AS I_COMMODITY,
-    I_COMMODITY_SDESC,
-    CAST(GEN_VAL_MO AS DOUBLE) AS GEN_VAL_MO,
+    CAST(E_COMMODITY AS INT) AS E_COMMODITY,
+    E_COMMODITY_SDESC,
+    CAST(ALL_VAL_MO AS DOUBLE) AS ALL_VAL_MO,
     CAST(AIR_VAL_MO AS DOUBLE) AS AIR_VAL_MO,
     CAST(AIR_WGT_MO AS DOUBLE) AS AIR_WGT_MO,
     CAST(VES_VAL_MO AS DOUBLE) AS VES_VAL_MO,
     CAST(VES_WGT_MO AS DOUBLE) AS VES_WGT_MO,
     SUMMARY_LVL,
     COMM_LVL,
-    CAST("YEAR" AS INT) AS IMPORT_YEAR,
-    CAST("MONTH" AS INT) AS IMPORT_MONTH
+    CAST("YEAR" AS INT) AS EXPORT_YEAR,
+    CAST("MONTH" AS INT) AS EXPORT_MONTH
     -- CAST("LAST_UPDATE" AS DATE) AS LAST_UPDATE
     -- CASE WHEN NULLIF(LAST_UPDATE, '0') IS NOT NULL THEN CAST(LAST_UPDATE AS DATE) ELSE NULL END AS LAST_UPDATE
-FROM nessie."import".state_lvl_data
+FROM nessie.silver.raw_export_state at BRANCH main

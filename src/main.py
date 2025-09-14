@@ -1,45 +1,40 @@
-import os
 import sys
 from pathlib import Path
-import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from pyspark.sql import SparkSession
-import numpy as np
 import asyncio
-
+import os
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 from src.utils.logger_config import logger
-from src.utils.utilities import create_spark_session
+from src.utils.utilities import create_spark_session, query_table, get_dremio_connection
 from datetime import datetime
-
 load_dotenv(override=True)
 
+dremio_port = int(os.getenv("DREMIO_PORT", '32010'))
+dremio_host = os.getenv("DREMIO_HOST")
+dremio_password = os.getenv("DREMIO_PASSWORD")
+dremio_user =os.getenv("DREMIO_USER")
+dremio_conn = get_dremio_connection(dremio_user,dremio_password,dremio_host,dremio_port)
 app = FastAPI()
-
-spark = create_spark_session()
-
 
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "ok", "datetime": datetime.utcnow().isoformat()}
 
 
-@app.get("/wits_tariff")
-async def read_wits_tariff(
+@app.get("/wits_tariff_trade", tags = ["WITS Tariff and Trade Data"])
+async def read_wits_trade_tariff(
+    data_type: str = "trade",
     offset: int = 0,
     limit: int = 10,
     partner: str = None,
-    tariff_indicator: str = None,
     year: int = None
 ):
     try:
         filters = []
         if partner:
-            filters.append(f"PARTNER = '{partner}'")
-        if tariff_indicator:
-            filters.append(f"INDICATOR = '{tariff_indicator}'")
+            filters.append(f"PARTNER_CTY = '{partner}'")
         if year:
             filters.append(f"TIME_PERIOD = {year}")
 
@@ -49,33 +44,91 @@ async def read_wits_tariff(
 
         query = f"""
             SELECT *
-            FROM nessie.silver.bronze_wits_tariff
+            FROM nessie.staged.staged_wits_{data_type}
             {where_clause}
             LIMIT {limit} OFFSET {offset}
         """
-        tariff = spark.sql(query)
-        tariff_pd = tariff.toPandas()
+        # tariff = spark.sql(query)
+        # tariff_pd = tariff.toPandas()
+        tariff_pd = query_table(dremio_conn, query)
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
-        logger.error(f"Error reading WITS tariff data: {e}")
+        logger.error(f"Error reading WITS {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/port_import")
-async def read_port_data(limit: int = 10):
+@app.get("/port_import_export")
+async def read_port_data(
+    data_type: str = "import",
+    country_name: str = None,
+    year: int = None,
+    limit: int = 10,
+    offset: int = 0
+    ):
     try:
-        query = f"SELECT * FROM nessie.silver.bronze_port_import LIMIT {limit}"
-        tariff = spark.sql(query)
-        tariff_pd = tariff.toPandas()
+        filters = []
+        if country_name:
+            filters.append(f"CTY_NAME = '{country_name}'")
+        if year:
+            if data_type == "export":
+                filters.append(f"EXPORT_YEAR = {year}")
+            else:
+                filters.append(f"IMPORT_YEAR = {year}")
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+        query = f"""SELECT * FROM nessie.staged.staged_{data_type}_port 
+                    {where_clause}
+                    LIMIT {limit} OFFSET {offset}
+                """
+        # tariff = spark.sql(query)
+        # tariff_pd = tariff.toPandas()
+        tariff_pd = query_table(dremio_conn, query)
         tariff_pd = tariff_pd.fillna('-')
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
-        logger.error(f"Error reading bronze port level data: {e}")
+        logger.error(f"Error reading bronze port level {data_type} data: {e}")
+        return {"error": str(e)}
+
+@app.get("/state_import_export")
+async def read_state_data(
+    data_type: str = "import",
+    country_name: str = None,
+    year: int = None,
+    state: str = None,
+    limit: int = 10,
+    offset: int = 0
+    ):
+    try:
+        filters = []
+        if country_name:
+            filters.append(f"CTY_NAME = '{country_name}'")
+        if state:
+            filters.append(f"STATE_ID = '{state}'")
+        if year:
+            if data_type == "export":
+                filters.append(f"EXPORT_YEAR = {year}")
+            else:
+                filters.append(f"IMPORT_YEAR = {year}")
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+        query = f"""SELECT * FROM nessie.staged.staged_{data_type}_state 
+                    {where_clause}
+                    LIMIT {limit} OFFSET {offset}
+                """
+        # tariff = spark.sql(query)
+        # tariff_pd = tariff.toPandas()
+        tariff_pd = query_table(dremio_conn, query)
+        tariff_pd = tariff_pd.fillna('-')
+        return tariff_pd.to_dict(orient="records")
+    except Exception as e:
+        logger.error(f"Error reading state level {data_type} data: {e}")
         return {"error": str(e)}
 
 if __name__ == '__main__':
     import time
     start = time.time()
-    asyncio.run(read_wits_tariff())
+    asyncio.run(read_wits_trade_tariff())
     # asyncio.run(read_port_data())
     end = time.time()
     print(f"Time taken: {end - start} seconds")

@@ -1,16 +1,15 @@
-# use python3.10
 requests
 dbt-dremio
 prefect
 pytest
 numpy
 pandas
-pyspark==3.5.6
 pyarrow
-notebook
 dotenv
 boto3
 minio
-sqlalchemy
 psycopg2-binary
 fastapi[standard]
+streamlit
+plotly
+xmltodict
