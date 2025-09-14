@@ -1,20 +1,18 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['PARTNER_CTY', 'TIME_PERIOD'],
+    schema='staged',
+    database = 'nessie'
 ) }}
-
 
 SELECT
     FREQ,
     REPORTER,
     "PARTNER" AS PARTNER_CTY,
     PRODUCTCODE,
-    "INDICATOR" AS TARIFF_INDICATOR,
+    "INDICATOR" AS TRADE_INDICATOR,
     CAST(TIME_PERIOD AS INT) AS TIME_PERIOD,
     DATASOURCE,
     OBS_VALUE
 
-FROM trade.wits.tariff
+FROM nessie.silver.raw_annual_trade

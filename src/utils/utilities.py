@@ -4,43 +4,36 @@ import sys
 from pathlib import Path
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
+from utils.connection import DremioConnection
 from utils.logger_config import logger
 import pandas as pd
-import pyspark
-from pyspark.sql import SparkSession
+def get_dremio_connection(user,password,host,port):
+    try:
+        dremio_conn = DremioConnection(
+            user=user,
+            password=password,
+            host=host,
+            port=port
+        )
+        logger.info("DremioConnection instance created successfully.")
+        return dremio_conn
+    except Exception as e:
+        logger.error(f"Error in connect: {e}")
+        raise e
 
-def create_spark_session():
-    url = "http://localhost:19120/api/v2"
-    full_path_to_warehouse = "s3://warehouse/"
-    ref = "main"
-    auth_type = "NONE"
-    spark = SparkSession.builder \
-        .config("spark.jars.packages",
-                "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.9.2,"
-                "org.projectnessie.nessie-integrations:nessie-spark-extensions-3.5_2.12:0.103.3,"
-                "software.amazon.awssdk:bundle:2.20.158,"
-                "org.apache.hadoop:hadoop-aws:3.3.4") \
-            .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")\
-            .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions") \
-            .config("spark.sql.catalog.nessie.uri", url) \
-            .config("spark.sql.catalog.nessie.ref", ref) \
-            .config("spark.sql.catalog.nessie.authentication.type", auth_type) \
-            .config("spark.sql.catalog.nessie.catalog-impl", "org.apache.iceberg.nessie.NessieCatalog") \
-            .config("spark.sql.catalog.nessie.warehouse", full_path_to_warehouse) \
-            .config("spark.sql.catalog.nessie", "org.apache.iceberg.spark.SparkCatalog") \
-            .config("spark.sql.catalog.nessie.s3.endpoint", "http://localhost:9000") \
-            .config("spark.hadoop.fs.s3a.access.key", "admin") \
-            .config("spark.hadoop.fs.s3a.secret.key", "password") \
-            .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
-            .config("spark.hadoop.fs.s3a.path.style.access", True) \
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-            .config("spark.sql.catalog.nessie.s3.access-key-id", "admin") \
-            .config("spark.sql.catalog.nessie.s3.secret-access-key", "password") \
-            .config("spark.sql.catalog.nessie.s3.path-style-access", True) \
-            .config("spark.sql.catalog.nessie.s3.region", "us-east-1") \
-            .getOrCreate()
-    return spark
-
+def query_table(con:DremioConnection, query:str):
+    try:
+        dremio_client = con.connect()
+        logger.info("Connected to Dremio successfully.")
+        
+        logger.info("SQL query loaded successfully.")
+        results = con.query(query, dremio_client)
+        data = results.read_all().to_pandas()
+        logger.info(f"Query executed and data {data.head(0)}fetched successfully.")
+        return data
+    except Exception as e:
+        logger.error(f"Error in main: {e}")
+        raise e
 
 def get_minio_client(minio_url, minio_access_key, minio_secret_key):
     try:

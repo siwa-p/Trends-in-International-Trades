@@ -2,14 +2,21 @@ import streamlit as st
 import plotly.graph_objects as go
 import sys
 import re
+import os
 from pathlib import Path
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
-from src.utils.utilities import create_spark_session
+from src.utils.utilities import create_spark_session, query_table, get_dremio_connection
 import pandas as pd
 import plotly.express as px
-spark = create_spark_session()
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
+dremio_port = int(os.getenv("DREMIO_PORT", '32010'))
+dremio_host = os.getenv("DREMIO_HOST")
+dremio_password = os.getenv("DREMIO_PASSWORD")
+dremio_user =os.getenv("DREMIO_USER")
+dremio_conn = get_dremio_connection(dremio_user,dremio_password,dremio_host,dremio_port)
 st.title("Visualizing Trends in US International Trade")
 st.header("This is the header")
 st.markdown("This is the markdown")
@@ -23,8 +30,10 @@ def classify_code(code):
         return "SoP"
     else:
         return "Broad"  
+
 year = st.selectbox('Pick year', [2017, 2018, 2019, 2020, 2021, 2022])
 classification = 'HS'
+threshold = st.slider("Minimum share (%) to display separately", 0.5, 5.0, 1.3)
 
 def rename_codes(code):
     if re.match(r"^\d{2}-\d{2}_", code):
@@ -32,7 +41,8 @@ def rename_codes(code):
     else:
         return code
     
-def get_trade_data(trade, year, classification):
+@st.cache_data(ttl=3600)
+def get_trade_data(trade, year, classification, threshold):
     filters = []
     filters.append(f"PARTNER_CTY = 'WLD'")
     if trade == 'import':
@@ -41,23 +51,20 @@ def get_trade_data(trade, year, classification):
         filters.append(f"TRADE_INDICATOR = 'XPRT-TRD-VL'")
     if year:
         filters.append(f"TIME_PERIOD = {year}")
-
     where_clause = ""
     if filters:
         where_clause = "WHERE " + " AND ".join(filters)
     query = f"""
         SELECT PRODUCTCODE, OBS_VALUE
-        FROM nessie.silver.bronze_wits_annual_trade
+        FROM nessie.staged.staged_wits_trade
         {where_clause}
     """
-    tariff = spark.sql(query)
-    tariff_pd = tariff.toPandas()
+    tariff_pd = query_table(dremio_conn, query)
     tariff_pd['group'] = tariff_pd['PRODUCTCODE'].apply(classify_code)
     tariff_pd['PRODUCTCODE']  = tariff_pd['PRODUCTCODE'].apply(rename_codes)
     tariff_filtered = tariff_pd[tariff_pd['group'] == classification]
     if 'Total' in tariff_filtered['PRODUCTCODE'].unique().tolist():
         tariff_filtered = tariff_filtered[tariff_filtered['PRODUCTCODE'] != 'Total']
-    threshold = 1.3
     total_value = tariff_filtered['OBS_VALUE'].sum()
     main = tariff_filtered[(tariff_filtered['OBS_VALUE'] / total_value) * 100 >= threshold]
     others = tariff_filtered[(tariff_filtered['OBS_VALUE'] / total_value) * 100 < threshold]
@@ -70,8 +77,8 @@ def get_trade_data(trade, year, classification):
     return main, total_value
 
 try:
-    import_data, import_total = get_trade_data('import', year, classification)
-    export_data, export_total = get_trade_data('export', year, classification)
+    import_data, import_total = get_trade_data('import', year, classification, threshold)
+    export_data, export_total = get_trade_data('export', year, classification, threshold)
 
     fig_import = px.pie(
         import_data,
@@ -135,20 +142,20 @@ commodity_code = import_dict[selected_commodity]
 
 trade_query = f"""
     SELECT IMPORT_YEAR, IMPORT_MONTH, SUM(GEN_VAL_MO) AS TOTAL_VAL_MO
-    FROM nessie.silver.bronze_hs_import
+    FROM nessie.staged.staged_import_hs
     WHERE CTY_NAME='CHINA' AND I_COMMODITY='{commodity_code}'
     GROUP BY IMPORT_YEAR, IMPORT_MONTH
     ORDER BY IMPORT_YEAR, IMPORT_MONTH
 """
-trade_df = spark.sql(trade_query).toPandas()
+trade_df = query_table(dremio_conn, trade_query)
 trade_df['date'] = pd.to_datetime(trade_df['IMPORT_YEAR'].astype(str) + '-' + trade_df['IMPORT_MONTH'].astype(str).str.zfill(2) + '-01')
 tariff_query = f"""
     SELECT date_tariff, base_mfn_rate, effective_ad_val_rate
-    FROM nessie.silver.bronze_tariff_timeline
+    FROM nessie.staged.staged_tariff_timeline
     WHERE hts6='{commodity_code}'
     ORDER BY date_tariff
 """
-tariff_df = spark.sql(tariff_query).toPandas()
+tariff_df = query_table(dremio_conn, tariff_query)
 tariff_df['date_tariff'] = pd.to_datetime(tariff_df['date_tariff'])
 tariff_df = tariff_df[tariff_df['date_tariff']>=trade_df['date'].min()]
 fig = go.Figure()
@@ -176,7 +183,7 @@ fig.update_layout(
         overlaying='y',
         side='right',
         showgrid=False,
-        range=[0, max(tariff_df['effective_ad_val_rate'].max(), 2)] 
+        range=[0, max(tariff_df['effective_ad_val_rate'].max(), 2)]
     ),
     legend=dict(x=0.01, y=0.99),
     width=1000,

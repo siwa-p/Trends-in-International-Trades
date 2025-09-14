@@ -1,9 +1,8 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['YEAR(date_tariff)'],
+    schema='staged',
+    database = 'nessie'
 ) }}
 select 
     cast(hts6 as int) as hts6,
@@ -11,4 +10,4 @@ select
     base_mfn_rate,
     surcharge_rate,
     effective_ad_val_rate
-from nessie.tariff_timeline
+from nessie.silver.raw_tariff_timeline at BRANCH main

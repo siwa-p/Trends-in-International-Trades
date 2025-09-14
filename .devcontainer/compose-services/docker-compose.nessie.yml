@@ -1,0 +1,23 @@
+services:
+  # Nessie Catalog Server Using In-Memory Store
+  nessie:
+    image: projectnessie/nessie
+    container_name: nessie
+    environment:
+      - QUARKUS_OTEL_SDK_DISABLED=true
+      - NESSIE_VERSION_STORE_TYPE=JDBC
+      - QUARKUS_DATASOURCE_DB_KIND=postgresql
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/trade_db
+      - QUARKUS_DATASOURCE_USERNAME=nessie
+      - QUARKUS_DATASOURCE_PASSWORD=nessie
+    networks:
+      - iceberg
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "19120:19120"
+
+networks:
+  iceberg:
+    driver: bridge

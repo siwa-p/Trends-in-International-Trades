@@ -4,9 +4,8 @@ from utils.logger_config import logger
 import os
 from dotenv import load_dotenv
 import numpy as np
-import matplotlib.pyplot as plt
 from utils.utilities import get_minio_client, upload_parquet, get_csv_from_lake
-load_dotenv()
+load_dotenv(override=True)
 
 
 def fix_datetime_columns(data:pd.DataFrame):

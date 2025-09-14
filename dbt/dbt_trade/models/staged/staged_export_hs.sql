@@ -1,9 +1,8 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['bucket(32, CTY_NAME)', 'EXPORT_YEAR']
+    schema='staged',
+    database = 'nessie'
 ) }}
 select 
     CASE WHEN NULLIF(CTY_CODE, '-') IS NOT NULL THEN CAST(CTY_CODE AS INT) ELSE NULL END AS CTY_CODE,
@@ -43,4 +42,5 @@ select
     CAST(VES_VAL_YR AS DOUBLE) AS VES_VAL_YR,
     CAST(VES_WGT_MO AS DOUBLE) AS VES_WGT_MO,
     CAST(VES_WGT_YR AS DOUBLE) AS VES_WGT_YR
-from "wits-data".export_hs
+
+from nessie.silver.raw_export_hs

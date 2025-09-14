@@ -1,9 +1,8 @@
 {{ config(
-    materialized='table',
+    materialized='view',
     on_schema_change = 'ignore',
-    format='iceberg',
-    schema='silver',
-    partition_by=['PARTNER_CTY', 'TIME_PERIOD']
+    schema='staged',
+    database = 'nessie'
 ) }}
 
 SELECT
@@ -11,9 +10,9 @@ SELECT
     REPORTER,
     "PARTNER" AS PARTNER_CTY,
     PRODUCTCODE,
-    "INDICATOR" AS TRADE_INDICATOR,
+    "INDICATOR" AS TARIFF_INDICATOR,
     CAST(TIME_PERIOD AS INT) AS TIME_PERIOD,
     DATASOURCE,
     OBS_VALUE
 
-FROM trade.wits.annual_trade
+FROM nessie.silver.raw_wits_tariff at BRANCH main
