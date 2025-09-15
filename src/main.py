@@ -7,7 +7,7 @@ import os
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 from src.utils.logger_config import logger
-from src.utils.utilities import create_spark_session, query_table, get_dremio_connection
+from src.utils.utilities import query_table, get_dremio_connection
 from datetime import datetime
 load_dotenv(override=True)
 
@@ -18,7 +18,7 @@ dremio_user =os.getenv("DREMIO_USER")
 dremio_conn = get_dremio_connection(dremio_user,dremio_password,dremio_host,dremio_port)
 app = FastAPI()
 
-@app.get("/healthcheck")
+@app.get("/healthcheck", tags = ["Health Check"])
 async def healthcheck():
     return {"status": "ok", "datetime": datetime.utcnow().isoformat()}
 
@@ -56,7 +56,59 @@ async def read_wits_trade_tariff(
         logger.error(f"Error reading WITS {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/port_import_export")
+@app.get("/import_export_hs", tags = ["Monthly Import Export by Commodity"])
+async def read_hs_data(
+    data_type: str = "import",
+    country_name: str = None,
+    year: int = None,
+    month: int = None,
+    limit: int = 10,
+    offset: int = 0
+):
+    try:
+        filters = []
+        if country_name:
+            filters.append(f"CTY_NAME = '{country_name}'")
+        if year:
+            if data_type == "export":
+                filters.append(f"EXPORT_YEAR = {year}")
+            else:
+                filters.append(f"IMPORT_YEAR = {year}")
+        if month:
+            if data_type == "export":
+                filters.append(f"EXPORT_MONTH = {month}")
+            else:
+                filters.append(f"IMPORT_MONTH = {month}")
+
+        where_clause = ""
+        if filters:
+            where_clause = "WHERE " + " AND ".join(filters)
+
+        if data_type == "export":
+            commodity_col = "E_COMMODITY"
+            desc_col = "E_COMMODITY_SDESC"
+            value_col = "ALL_VAL_MO"
+        else:
+            commodity_col = "I_COMMODITY"
+            desc_col = "I_COMMODITY_SDESC"
+            value_col = "GEN_VAL_MO"
+
+        group_by_clause = f"GROUP BY {commodity_col}, {desc_col}"
+        query = f"""
+            SELECT {commodity_col}, {desc_col}, SUM({value_col}) as total_value
+            FROM nessie.staged.staged_{data_type}_hs
+            {where_clause}
+            {group_by_clause}
+            LIMIT {limit} OFFSET {offset}
+        """
+        tariff_pd = query_table(dremio_conn, query)
+        tariff_pd = tariff_pd.fillna('-')
+        return tariff_pd.to_dict(orient="records")
+    except Exception as e:
+        logger.error(f"Error reading {data_type} hs data: {e}")
+        return {"error": str(e)}
+    
+@app.get("/port_import_export", tags= ["Port Level Import Export Data"])
 async def read_port_data(
     data_type: str = "import",
     country_name: str = None,
@@ -80,8 +132,6 @@ async def read_port_data(
                     {where_clause}
                     LIMIT {limit} OFFSET {offset}
                 """
-        # tariff = spark.sql(query)
-        # tariff_pd = tariff.toPandas()
         tariff_pd = query_table(dremio_conn, query)
         tariff_pd = tariff_pd.fillna('-')
         return tariff_pd.to_dict(orient="records")
@@ -89,7 +139,7 @@ async def read_port_data(
         logger.error(f"Error reading bronze port level {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/state_import_export")
+@app.get("/state_import_export", tags = ["State Level Import Export Data"])
 async def read_state_data(
     data_type: str = "import",
     country_name: str = None,
@@ -116,8 +166,6 @@ async def read_state_data(
                     {where_clause}
                     LIMIT {limit} OFFSET {offset}
                 """
-        # tariff = spark.sql(query)
-        # tariff_pd = tariff.toPandas()
         tariff_pd = query_table(dremio_conn, query)
         tariff_pd = tariff_pd.fillna('-')
         return tariff_pd.to_dict(orient="records")
