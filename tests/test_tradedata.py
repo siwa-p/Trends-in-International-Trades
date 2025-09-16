@@ -11,7 +11,7 @@ load_dotenv(override=True)
 dremio_port = int(os.getenv("DREMIO_PORT", "32010"))
 dremio_host = os.getenv("DREMIO_HOST")
 dremio_password = os.getenv("DREMIO_PASSWORD")
-dremio_user = os.getenv("DREMIO_USERNAME")
+dremio_user = os.getenv("DREMIO_USER")
 dremio_conn = get_dremio_connection(
     dremio_user, dremio_password, dremio_host, dremio_port
 )
