@@ -1,35 +1,42 @@
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-from fastapi import FastAPI
 import asyncio
 import os
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from fastapi import FastAPI
+
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
-from src.utils.logger_config import logger
-from src.utils.utilities import query_table, get_dremio_connection
 from datetime import datetime
+
+from src.utils.logger_config import logger
+from src.utils.utilities import get_dremio_connection, query_table
+
 load_dotenv(override=True)
 
-dremio_port = int(os.getenv("DREMIO_PORT", '32010'))
+dremio_port = int(os.getenv("DREMIO_PORT", "32010"))
 dremio_host = os.getenv("DREMIO_HOST")
 dremio_password = os.getenv("DREMIO_PASSWORD")
-dremio_user =os.getenv("DREMIO_USER")
-dremio_conn = get_dremio_connection(dremio_user,dremio_password,dremio_host,dremio_port)
+dremio_user = os.getenv("DREMIO_USER")
+dremio_conn = get_dremio_connection(
+    dremio_user, dremio_password, dremio_host, dremio_port
+)
 app = FastAPI()
 
-@app.get("/healthcheck", tags = ["Health Check"])
+
+@app.get("/healthcheck", tags=["Health Check"])
 async def healthcheck():
     return {"status": "ok", "datetime": datetime.utcnow().isoformat()}
 
 
-@app.get("/wits_tariff_trade", tags = ["WITS Tariff and Trade Data"])
+@app.get("/wits_tariff_trade", tags=["WITS Tariff and Trade Data"])
 async def read_wits_trade_tariff(
     data_type: str = "trade",
     offset: int = 0,
     limit: int = 10,
     partner: str = None,
-    year: int = None
+    year: int = None,
 ):
     try:
         filters = []
@@ -48,22 +55,21 @@ async def read_wits_trade_tariff(
             {where_clause}
             LIMIT {limit} OFFSET {offset}
         """
-        # tariff = spark.sql(query)
-        # tariff_pd = tariff.toPandas()
         tariff_pd = query_table(dremio_conn, query)
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error reading WITS {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/import_export_hs", tags = ["Monthly Import Export by Commodity"])
+
+@app.get("/import_export_hs", tags=["Monthly Import Export by Commodity"])
 async def read_hs_data(
     data_type: str = "import",
     country_name: str = None,
     year: int = None,
     month: int = None,
     limit: int = 10,
-    offset: int = 0
+    offset: int = 0,
 ):
     try:
         filters = []
@@ -102,20 +108,21 @@ async def read_hs_data(
             LIMIT {limit} OFFSET {offset}
         """
         tariff_pd = query_table(dremio_conn, query)
-        tariff_pd = tariff_pd.fillna('-')
+        tariff_pd = tariff_pd.fillna("-")
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error reading {data_type} hs data: {e}")
         return {"error": str(e)}
-    
-@app.get("/port_import_export", tags= ["Port Level Import Export Data"])
+
+
+@app.get("/port_import_export", tags=["Port Level Import Export Data"])
 async def read_port_data(
     data_type: str = "import",
     country_name: str = None,
     year: int = None,
     limit: int = 10,
-    offset: int = 0
-    ):
+    offset: int = 0,
+):
     try:
         filters = []
         if country_name:
@@ -133,21 +140,22 @@ async def read_port_data(
                     LIMIT {limit} OFFSET {offset}
                 """
         tariff_pd = query_table(dremio_conn, query)
-        tariff_pd = tariff_pd.fillna('-')
+        tariff_pd = tariff_pd.fillna("-")
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error reading bronze port level {data_type} data: {e}")
         return {"error": str(e)}
 
-@app.get("/state_import_export", tags = ["State Level Import Export Data"])
+
+@app.get("/state_import_export", tags=["State Level Import Export Data"])
 async def read_state_data(
     data_type: str = "import",
     country_name: str = None,
     year: int = None,
     state: str = None,
     limit: int = 10,
-    offset: int = 0
-    ):
+    offset: int = 0,
+):
     try:
         filters = []
         if country_name:
@@ -167,14 +175,16 @@ async def read_state_data(
                     LIMIT {limit} OFFSET {offset}
                 """
         tariff_pd = query_table(dremio_conn, query)
-        tariff_pd = tariff_pd.fillna('-')
+        tariff_pd = tariff_pd.fillna("-")
         return tariff_pd.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error reading state level {data_type} data: {e}")
         return {"error": str(e)}
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import time
+
     start = time.time()
     asyncio.run(read_wits_trade_tariff())
     # asyncio.run(read_port_data())
