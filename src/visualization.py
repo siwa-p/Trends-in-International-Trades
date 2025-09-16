@@ -9,11 +9,11 @@ import plotly.graph_objects as go
 import pycountry
 import streamlit as st
 from dotenv import load_dotenv
-
+parent_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(parent_dir)) # isort:skip
 from src.utils.utilities import get_dremio_connection, query_table
 
-parent_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(parent_dir))
+
 
 load_dotenv(override=True)
 st.set_page_config(layout="wide")
@@ -82,7 +82,13 @@ def get_trade_data(trade, year, classification, threshold):
         )
     return main, total_value
 
-
+def display_trade_summary(import_total, export_total):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Total Import Value (Trillion USD)", f"${import_total/1e9:.2f}T")
+    with col2:
+        st.metric("Total Export Value (Trillion USD)", f"${export_total/1e9:.2f}T")
+        
 def get_trade_volume_query(data_type, year, month):
     year_col = "EXPORT_YEAR" if data_type == "export" else "IMPORT_YEAR"
     month_col = "EXPORT_MONTH" if data_type == "export" else "IMPORT_MONTH"
@@ -91,21 +97,14 @@ def get_trade_volume_query(data_type, year, month):
     return f"""
         SELECT
             CTY_NAME,
-            CTY_CODE,
-            SUM(AIR_VAL_MO) AS total_air,
-            SUM({value_col}) AS total_value,
-            SUM(VES_VAL_MO) AS total_vessel,
-            SUM(CNT_VAL_MO) AS total_containerized_vessel,
-            SUM(CNT_WGT_MO) AS total_containerized_weight,
-            SUM(AIR_WGT_MO) AS total_air_weight,
-            SUM(VES_WGT_MO) AS total_vessel_weight
+            SUM({value_col}) AS total_value
         FROM "nessie.staged".{table}
         WHERE DIST_NAME != 'TOTAL FOR ALL DISTRICTS'
           AND SUMMARY_LVL = 'DET'
           AND {year_col} = {year}
           AND {month_col} = {month}
           AND CTY_CODE IS NOT NULL
-        GROUP BY CTY_NAME, CTY_CODE
+        GROUP BY CTY_NAME
     """
 
 
@@ -135,13 +134,14 @@ try:
         var_name="Trade Type",
         value_name="Value",
     )
-
+    display_trade_summary(import_total, export_total)
+    
     fig = px.bar(
         melted,
         x="PRODUCTCODE",
         y="Value",
         color="Trade Type",
-        barmode="group",  # Changed from 'stack' to 'group' for side-by-side bars
+        barmode="group",
         title=f"Import vs Export Distribution in {year} (HS Classification)",
         labels={"Value": "Trade Value ($)", "PRODUCTCODE": "Commodity Code"},
         width=900,
@@ -157,7 +157,7 @@ st.subheader("Monthly trade volume by country")
 year = st.selectbox(
     "Select Year for Trade by Volume",
     [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
-    index=5,
+    index=8,
 )
 month = st.selectbox("Pick month", list(range(1, 13)), index=0)
 data_type = st.selectbox("Select Data Type", ["import", "export"], index=0)
@@ -172,7 +172,7 @@ fig = px.choropleth(
     locations="iso3",
     color="total_value",
     hover_name="CTY_NAME",
-    color_continuous_scale=px.colors.sequential.Viridis,  # Use Viridis color scale
+    color_continuous_scale=px.colors.sequential.Viridis[::-1],
     title=f"Global {data_type.title()} Trade Value by Country in {year}",
     labels={"total_value": "Trade Value ($)"},
     width=1400,

@@ -1,9 +1,9 @@
 name: CI Pipeline
 on:
   push:
-    branches: [ feature/winpc ]
+    branches: [ develop, main, feature/* ]
   pull_request:
-    branches: [ feature/winpc ]
+    branches: [ develop, main, feature/* ]
 jobs:
   quality:
     name: Code Quality
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install quality tools
       run: |
@@ -32,13 +32,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: quality
-
-    env:
-      DREMIO_USER: ${{ secrets.DREMIO_USER }}
-      DREMIO_PASSWORD: ${{ secrets.DREMIO_PASSWORD }}
-      DREMIO_HOST: ${{ secrets.DREMIO_HOST }}
-      DREMIO_PORT: ${{ secrets.DREMIO_PORT }}
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

@@ -13,8 +13,8 @@ base_url = "https://api.census.gov/data/timeseries/intltrade"
 data_type = "porths"
 DATA_TYPE_COLUMNS = {
     "porths": {
-        "export": "PORT,PORT_NAME, CTY_CODE,CTY_NAME,E_COMMODITY,E_COMMODITY_SDESC,ALL_VAL_MO,LAST_UPDATE,AIR_VAL_MO,AIR_WGT_MO,VES_VAL_MO,VES_WGT_MO",
-        "import": "PORT,PORT_NAME, CTY_CODE,CTY_NAME,I_COMMODITY,I_COMMODITY_SDESC,GEN_VAL_MO,LAST_UPDATE,AIR_VAL_MO,AIR_WGT_MO,VES_VAL_MO,VES_WGT_MO",
+        "export": "PORT,PORT_NAME,CTY_CODE,CTY_NAME,E_COMMODITY,E_COMMODITY_SDESC,ALL_VAL_MO,LAST_UPDATE,AIR_VAL_MO,AIR_WGT_MO,VES_VAL_MO,VES_WGT_MO",
+        "import": "PORT,PORT_NAME,CTY_CODE,CTY_NAME,I_COMMODITY,I_COMMODITY_SDESC,GEN_VAL_MO,LAST_UPDATE,AIR_VAL_MO,AIR_WGT_MO,VES_VAL_MO,VES_WGT_MO",
     },
     "statehs": {
         "export": "STATE,CTY_CODE,CTY_NAME,E_COMMODITY,E_COMMODITY_SDESC,ALL_VAL_MO,LAST_UPDATE,AIR_VAL_MO,AIR_WGT_MO,VES_VAL_MO,VES_WGT_MO",
@@ -69,9 +69,9 @@ def get_monthly_port_data(year, month, trade_type, data_type):
 
 
 def ingest_all_data(minio_client, data_type):
-    trade_types = ["import"]
+    trade_types = ["export"]
     for trade_type in trade_types:
-        for year in range(2015, 2026):
+        for year in range(2020, 2026):
             annual_data = pd.DataFrame()
             for month in range(1, 13):
                 monthly_data = get_monthly_port_data(year, month, trade_type, data_type)
@@ -102,7 +102,7 @@ def main():
         )
     # for data_type in ["hs", "statehs", "porths"]:
     #     ingest_all_data(minio_client, data_type)
-    ingest_all_data(minio_client, "statehs")
+    ingest_all_data(minio_client, "porths")
     logger.info("Data uploaded to Minio")
 
 
