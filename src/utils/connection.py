@@ -1,4 +1,6 @@
 from pyarrow import flight
+
+
 class DremioConnection:
     def __init__(self, user, password, host, port):
         self.user = user
@@ -13,11 +15,10 @@ class DremioConnection:
         self.options = flight.FlightCallOptions(headers=[bearer])
         print(f"Connected to Dremio at {self.location}")
         return self.client
-    
+
     def query(self, query, client):
         flight_info = client.get_flight_info(
-            flight.FlightDescriptor.for_command(query),
-            self.options
+            flight.FlightDescriptor.for_command(query), self.options
         )
         results = client.do_get(flight_info.endpoints[0].ticket, self.options)
         return results

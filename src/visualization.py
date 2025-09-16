@@ -1,14 +1,16 @@
 import os
 import re
 import sys
-import pycountry
+from pathlib import Path
+
 import pandas as pd
-import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from pathlib import Path
+import pycountry
+import streamlit as st
 from dotenv import load_dotenv
-from src.utils.utilities import query_table, get_dremio_connection
+
+from src.utils.utilities import get_dremio_connection, query_table
 
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
@@ -20,7 +22,7 @@ dremio_conn = get_dremio_connection(
     os.getenv("DREMIO_USER"),
     os.getenv("DREMIO_PASSWORD"),
     os.getenv("DREMIO_HOST"),
-    int(os.getenv("DREMIO_PORT", "32010"))
+    int(os.getenv("DREMIO_PORT", "32010")),
 )
 
 st.title("Visualizing Trends in US International Trade")
@@ -67,7 +69,15 @@ def get_trade_data(trade, year, classification, threshold):
     others = df[df["OBS_VALUE"] / total_value * 100 < threshold]
     if not others.empty:
         main = pd.concat(
-            [main, pd.DataFrame({"PRODUCTCODE": ["Others"], "OBS_VALUE": [others["OBS_VALUE"].sum()]})],
+            [
+                main,
+                pd.DataFrame(
+                    {
+                        "PRODUCTCODE": ["Others"],
+                        "OBS_VALUE": [others["OBS_VALUE"].sum()],
+                    }
+                ),
+            ],
             ignore_index=True,
         )
     return main, total_value
@@ -108,14 +118,23 @@ try:
 
     # Merge import and export data for common PRODUCTCODEs
     merged = pd.merge(
-        imports[["PRODUCTCODE", "OBS_VALUE"]].rename(columns={"OBS_VALUE": "Import Value"}),
-        exports[["PRODUCTCODE", "OBS_VALUE"]].rename(columns={"OBS_VALUE": "Export Value"}),
+        imports[["PRODUCTCODE", "OBS_VALUE"]].rename(
+            columns={"OBS_VALUE": "Import Value"}
+        ),
+        exports[["PRODUCTCODE", "OBS_VALUE"]].rename(
+            columns={"OBS_VALUE": "Export Value"}
+        ),
         on="PRODUCTCODE",
-        how="outer"
+        how="outer",
     ).fillna(0)
 
     # Melt for grouped bar chart
-    melted = merged.melt(id_vars="PRODUCTCODE", value_vars=["Import Value", "Export Value"], var_name="Trade Type", value_name="Value")
+    melted = merged.melt(
+        id_vars="PRODUCTCODE",
+        value_vars=["Import Value", "Export Value"],
+        var_name="Trade Type",
+        value_name="Value",
+    )
 
     fig = px.bar(
         melted,
@@ -135,11 +154,17 @@ except Exception as e:
 
 st.subheader("Monthly trade volume by country")
 
-year = st.selectbox("Select Year for Trade by Volume", [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025], index=5)
+year = st.selectbox(
+    "Select Year for Trade by Volume",
+    [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    index=5,
+)
 month = st.selectbox("Pick month", list(range(1, 13)), index=0)
 data_type = st.selectbox("Select Data Type", ["import", "export"], index=0)
 
-trade_volume_df = query_table(dremio_conn, get_trade_volume_query(data_type, year, month))
+trade_volume_df = query_table(
+    dremio_conn, get_trade_volume_query(data_type, year, month)
+)
 trade_volume_df["iso3"] = trade_volume_df["CTY_NAME"].apply(get_iso3)
 
 fig = px.choropleth(
@@ -187,7 +212,12 @@ trade_query = f"""
     ORDER BY IMPORT_YEAR, IMPORT_MONTH
 """
 trade_df = query_table(dremio_conn, trade_query)
-trade_df["date"] = pd.to_datetime(trade_df["IMPORT_YEAR"].astype(str) + "-" + trade_df["IMPORT_MONTH"].astype(str).str.zfill(2) + "-01")
+trade_df["date"] = pd.to_datetime(
+    trade_df["IMPORT_YEAR"].astype(str)
+    + "-"
+    + trade_df["IMPORT_MONTH"].astype(str).str.zfill(2)
+    + "-01"
+)
 
 tariff_query = f"""
     SELECT date_tariff, base_mfn_rate, effective_ad_val_rate
@@ -198,15 +228,38 @@ tariff_query = f"""
 tariff_df = query_table(dremio_conn, tariff_query)
 tariff_df["date_tariff"] = pd.to_datetime(tariff_df["date_tariff"])
 tariff_df = tariff_df[tariff_df["date_tariff"] >= trade_df["date"].min()]
-tariff_df['percent_ad_val_rate'] = tariff_df['effective_ad_val_rate'] * 100
+tariff_df["percent_ad_val_rate"] = tariff_df["effective_ad_val_rate"] * 100
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=trade_df["date"], y=trade_df["TOTAL_VAL_MO"], mode="lines+markers", name="Import Value", yaxis="y1"))
-fig.add_trace(go.Scatter(x=tariff_df["date_tariff"], y=tariff_df["percent_ad_val_rate"], mode="lines+markers", name="Tariff Rate", yaxis="y2", line=dict(color="red")))
+fig.add_trace(
+    go.Scatter(
+        x=trade_df["date"],
+        y=trade_df["TOTAL_VAL_MO"],
+        mode="lines+markers",
+        name="Import Value",
+        yaxis="y1",
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=tariff_df["date_tariff"],
+        y=tariff_df["percent_ad_val_rate"],
+        mode="lines+markers",
+        name="Tariff Rate",
+        yaxis="y2",
+        line=dict(color="red"),
+    )
+)
 fig.update_layout(
     title=f"Monthly Import Value and Tariff Rate for {selected.title()}",
     xaxis=dict(title="Date"),
     yaxis=dict(title="Import Value", side="left"),
-    yaxis2=dict(title="Tariff Rate (%)", overlaying="y", side="right", showgrid=False, range=[0, max(tariff_df["percent_ad_val_rate"].max(), 2)]),
+    yaxis2=dict(
+        title="Tariff Rate (%)",
+        overlaying="y",
+        side="right",
+        showgrid=False,
+        range=[0, max(tariff_df["percent_ad_val_rate"].max(), 2)],
+    ),
     legend=dict(x=0.01, y=0.99),
     width=1000,
     height=500,

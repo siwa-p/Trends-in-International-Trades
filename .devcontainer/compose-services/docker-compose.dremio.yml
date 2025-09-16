@@ -10,7 +10,7 @@ services:
     environment:
       - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
       - DREMIO_MAX_HEAP_MEMORY_SIZE_MB=8192
-      - DREMIO_MAX_DIRECT_MEMORY_SIZE_MB=16384
+      - DREMIO_MAX_DIRECT_MEMORY_SIZE_MB=8192
     networks:
       - iceberg
     volumes:
