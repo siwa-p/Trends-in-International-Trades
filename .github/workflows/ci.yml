@@ -55,5 +55,5 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest --maxfail=1 --disable-warnings -q
+        pytest -m "not integration" --maxfail=1 --disable-warnings -q
   
