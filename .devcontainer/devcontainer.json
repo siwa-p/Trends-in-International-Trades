@@ -17,7 +17,7 @@
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "mechatroner.rainbow-csv",m 
+        "mechatroner.rainbow-csv",
         "redhat.vscode-yaml",
         "GitHub.copilot",
         "GitHub.copilot-chat"

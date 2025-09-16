@@ -55,7 +55,7 @@ def get_monthly_port_data(year, month, trade_type, data_type):
         return None
 
 def ingest_all_data(minio_client, data_type):
-    trade_types = ["export", "import"]
+    trade_types = ["import"]
     for trade_type in trade_types:
         for year in range(2015, 2026):
             annual_data = pd.DataFrame()
@@ -76,13 +76,10 @@ def main():
         os.getenv("MINIO_ACCESS_KEY"),
         os.getenv("MINIO_SECRET_KEY"),
         )
-    # for data_type in ["hs", "statehs"]:
+    # for data_type in ["hs", "statehs", "porths"]:
     #     ingest_all_data(minio_client, data_type)
     ingest_all_data(minio_client, "statehs")
     logger.info("Data uploaded to Minio")
 
 if __name__ == "__main__":
     main()
-    main()
-
-
