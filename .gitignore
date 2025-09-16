@@ -44,6 +44,6 @@ Thumbs.db
 .git/
 
 data/
-logs/
+# logs/
 
 .prefect_ui/

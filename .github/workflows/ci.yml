@@ -36,7 +36,6 @@ jobs:
     env:
       DREMIO_USER: ${{ secrets.DREMIO_USER }}
       DREMIO_PASSWORD: ${{ secrets.DREMIO_PASSWORD }}
-      DREMIO_DB: ${{ secrets.DREMIO_DB }}
       DREMIO_HOST: ${{ secrets.DREMIO_HOST }}
       DREMIO_PORT: ${{ secrets.DREMIO_PORT }}
 
