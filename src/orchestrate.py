@@ -1,14 +1,20 @@
 import subprocess
 import sys
 from pathlib import Path
+
 from prefect import flow, task
 
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 from utils.logger_config import logger
 
-project_dir = "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
-profiles_dir = "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
+project_dir = (
+    "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
+)
+profiles_dir = (
+    "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
+)
+
 
 @task(retries=3, retry_delay_seconds=60)
 def run_dbt_staging():
@@ -32,7 +38,6 @@ def run_dbt_staging():
         raise
 
 
-
 @task(retries=3, retry_delay_seconds=60)
 def run_dbt_gold():
     try:
@@ -53,8 +58,6 @@ def run_dbt_gold():
     except subprocess.CalledProcessError as e:
         logger.info(f"DBT Gold run failed: {e}")
         raise
-
-
 
 
 @flow(name="trade_data")

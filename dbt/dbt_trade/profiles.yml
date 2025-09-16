@@ -8,6 +8,6 @@ dbt_trade:
       software_host: dremio
       port: 9047
       object_storage_source: nessie
-      threads: 4
+      threads: 2
       use_ssl: false
     target: dev
