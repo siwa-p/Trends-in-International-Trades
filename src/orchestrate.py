@@ -44,8 +44,8 @@ def run_tariff_cleanup():
         logger.info(f"Tariff Data cleanup failed: {e}")
         raise
 
-project_dir = "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
-profiles_dir = "/home/prahald/Documents/Data Engineering Bootcamp/capstone/dbt/dbt_trade/"
+project_dir = "/workspace/dbt/dbt_trade/"
+profiles_dir = "/workspace/dbt/dbt_trade/"
 
 @task(retries=3, retry_delay_seconds=60)
 def run_dbt_raw():
@@ -94,8 +94,8 @@ def run_dbt_staging():
 @flow(name="trade_data")
 def main_flow():
     # run_annual_wits()
-    run_monthly_data()
-    run_tariff_cleanup()
+    # run_monthly_data()
+    # run_tariff_cleanup()
     run_dbt_raw()
     run_dbt_staging()
 

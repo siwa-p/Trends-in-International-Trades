@@ -8,11 +8,6 @@ services:
     command: sleep infinity
     networks:
       - iceberg
-    deploy:
-      resources:
-        limits:
-          cpus: '6'
-          memory: 12G
   
 networks:
   iceberg:
