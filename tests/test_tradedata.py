@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import sys
+import pytest
 from pathlib import Path
 from dotenv import load_dotenv
 parent_dir = Path(__file__).resolve().parent.parent
@@ -16,6 +17,7 @@ dremio_conn = get_dremio_connection(
     dremio_user, dremio_password, dremio_host, dremio_port
 )
 
+@pytest.mark.integration
 def test_trade_data():
     query = f"""
             select * from nessie.staged.staged_wits_trade limit 10
