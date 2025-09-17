@@ -26,7 +26,6 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 ### Project Objectives
 
 - Aggregate and clean international trade datasets from multiple sources.
-- Scrape and/or find data for the tarrif announcements and trade deals.
 - Analyze trade flows, trends, and the impact of recent tariff policies.
 - Identify top commodities and trading partners for the United States.
 - Build interactive dashboards for data visualization.
@@ -38,8 +37,9 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 - **Data Storage**: MINIO (Raw data lake) in parquet format.
 - **Table Format**: Iceberg tables for scalable, reliable, and ACID-compliant data storage and querying
 - **Data Transformation & Modeling**: 
-  - dbt (Data Build Tool) for version-controlled data transformations ( bronze -- silver -- gold)
+  - dbt (Data Build Tool) for version-controlled data transformations ( raw -- staged)
   - Partitioning and bucketing for faster query
+- **Dremio** Distributed engine, Reflections aid faster analytics
 - **Prefect** Orchestration. Automate the *data ingestion* and transformation
 - **API Development**: FastAPI
 - **Dashboard Visualization**: Streamlit
@@ -50,12 +50,12 @@ The project workflow is divided into two main components:
 
 #### 1. Data Ingestion, Processing, and Transformation
 
-- **Containerized Environment**: All core data engineering tools (MinIO, Dremio, dbt, Prefect) are orchestrated for streamlined deployment and reproducibility.
+- **Containerized Environment**: All core data engineering tools (MinIO, Dremio, dbt, Prefect) are orchestrated in devcontainer for streamlined deployment and reproducibility.
 - **Data Ingestion**: Prefect orchestrates scheduled extraction of raw data from external APIs (U.S. Census, WITS).
 - **Raw Data Storage**: Ingested data is stored in MinIO as parquet files, forming the raw data lake.
-- **Data Processing & Transformation**: Dremio UI is uset to write raw data into iceberg tables, and dbt manages transformations through bronze, silver, and gold layers, ensuring clean, reliable, and analytics-ready tables.
+- **Data Processing & Transformation**: Dremio UI is used as a distributed analytics engine to write raw data into iceberg tables, partition and bucket, create reflections, and DBT-Dremio manages transformations through bronze, silver, and gold layers, ensuring clean, reliable, and analytics-ready tables.
 
 #### 2. API and Dashboard
 
 - **RESTful API**: FastAPI serves as the backend, providing flexible access to processed trade data and analytics.
-- **Dashboard Visualization**: Superset or Streamlit connects to gold tables, enabling interactive dashboards for stakeholders to explore trade insights.
+- **Dashboard Visualization**: Streamlit connects to staged tables, enabling interactive dashboards for stakeholders to explore trade insights.

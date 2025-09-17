@@ -3,6 +3,7 @@ import re
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -167,35 +168,60 @@ trade_volume_df = query_table(
 )
 trade_volume_df["iso3"] = trade_volume_df["CTY_NAME"].apply(get_iso3)
 
+trade_volume_df["log_total_value"] = trade_volume_df["total_value"].apply(lambda x: None if x <= 0 else np.log10(x))
+tick_values = [1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11]
+tickvals = [np.log10(v) for v in tick_values]
+ticktext = [
+    "$10K", "$100K", "$1M", "$10M", "$100M", "$1B", "$10B", "$100B"
+]
+
 fig = px.choropleth(
     trade_volume_df,
     locations="iso3",
-    color="total_value",
+    color="log_total_value",
     hover_name="CTY_NAME",
     color_continuous_scale=px.colors.sequential.Viridis[::-1],
-    title=f"Global {data_type.title()} Trade Value by Country in {year}",
+    title=f"Global {data_type.title()} Trade Value by Country in {year} and month {month}",
     labels={"total_value": "Trade Value ($)"},
     width=1400,
     height=1200,
+    color_continuous_midpoint=None,
+)
+
+fig.update_coloraxes(
+    colorbar_tickvals=tickvals,
+    colorbar_ticktext=ticktext,
+    colorbar_title="Trade Value"
 )
 fig.update_layout(geo=dict(showframe=False, showcoastlines=True))
 st.plotly_chart(fig)
 
 
 import_dict = {
+    # "smartphones": "851713",
+    # "lithium ion batteries": "850760",
+    # "video game consoles": "950450",
     "wheat": "100810",
     "furniture": "940350",
+    "metal furniture": "940320",
     "processors": "854231",
     "clothing(cotton)": "620342",
     "television sets": "852872",
+    # "Estimated imports of low valued transactions": "999995",
     "refrigerators": "841810",
     "air conditioners": "841510",
     "footwear": "640399",
     "plastic articles": "392690",
     "cars": "870323",
+    "Head phones, earphones and combined microphone/speaker sets": "851830",
+    "CHRISTMAS FESTIVITIES AND ACCESSORIEs": "950510",
     "motorcycles": "871120",
     "bicycles": "871200",
     "paper products": "481910",
+    # "medicaments": "300490",
+    # "network equipment": "851762",
+    "adp parts & accessories": "847330",
+    # "tricycles & pedal toys": "950300",
 }
 
 
@@ -207,7 +233,7 @@ code = import_dict[selected]
 trade_query = f"""
     SELECT IMPORT_YEAR, IMPORT_MONTH, SUM(GEN_VAL_MO) AS TOTAL_VAL_MO
     FROM nessie.staged.staged_import_hs
-    WHERE CTY_NAME='CHINA' AND I_COMMODITY='{code}'
+    WHERE CTY_NAME='CHINA' AND I_COMMODITY='{code}' AND DIST_NAME != 'TOTAL FOR ALL DISTRICTS'
     GROUP BY IMPORT_YEAR, IMPORT_MONTH
     ORDER BY IMPORT_YEAR, IMPORT_MONTH
 """
