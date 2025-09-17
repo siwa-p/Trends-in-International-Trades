@@ -6,7 +6,7 @@
 
 This project aims to analyze and visualize international trade data for the United States, providing actionable insights for policymakers, businesses, and researchers. By leveraging modern data engineering techniques, we will process large datasets, identify key areas of trade, highlight significant trade partners and look for recent trend in data with reference to the implementation of tarrifs on trade partners.
 
-The end product will be a dashboard and a flexible API for stakeholders to access data reliably and accurately.
+The end product is a dashboard for analytics and a flexible API for stakeholders to access data reliably and accurately.
 
 ### Data Sources
 
@@ -14,11 +14,12 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
   - [API Documentation](https://www.census.gov/data/developers/data-sets/international-trade.html)
   - Classification System of choice:
     - Harmonized System (HS)
-  - Data types:
-    - Port level: PORT, COUNTRY, COMMODITY, MONTHLY AGGREGATED VALUES, MODE OF TRANSPORTATION
-    - State Level: ---
+  - Data types: Import and Export at
+    - Port level
+    - State Level
+    - District Level
 - **World Integrated Trade Solution Rest (WITS) API**
-  - [Documentation](https://wits.worldbank.org/witsapiintro.aspx?lang=en#Trade)
+  - [API Documentation](https://wits.worldbank.org/witsapiintro.aspx?lang=en#Trade)
   - United Nations Conference on Trade and Development (UNCTAD) Trade Analysis Information System (Trains) data : Extensive tariff information 
   - Trade Stats - Trade : COUNTRY AND PRODUCT level annual aggregate data
   - Trade Stats - Tariff data: COUNTRY AND PRODUCT level aggregate  tariff (%)
@@ -31,7 +32,7 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 - Build interactive dashboards for data visualization.
 - Develop a RESTful API for flexible data access.
 
-### Proposed Tech Stack
+### Tech Stack and Architecture
 
 - **Data Ingestion & Processing**: Python Scripts, Pandas
 - **Data Storage**: MINIO (Raw data lake) in parquet format.
@@ -43,6 +44,8 @@ The end product will be a dashboard and a flexible API for stakeholders to acces
 - **Prefect** Orchestration. Automate the *data ingestion* and transformation
 - **API Development**: FastAPI
 - **Dashboard Visualization**: Streamlit
+
+![Architecture Diagram](architecture.png)
 
 ### Workflow
 
