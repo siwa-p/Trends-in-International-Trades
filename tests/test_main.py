@@ -1,0 +1,30 @@
+import os
+import sys
+
+from unittest.mock import patch
+from fastapi.testclient import TestClient
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.main import app
+
+client = TestClient(app)
+
+
+@patch("src.main.query_table")
+@patch("src.main.get_dremio_connection")
+def test_healthcheck(mock_conn, mock_query):
+    response = client.get("/healthcheck")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    
+
+@patch("src.main.query_table")
+@patch("src.main.get_dremio_connection")  
+def test_trade_tariff_endpoint(mock_conn, mock_query):
+    response = client.get("/wits_tariff_trade?limit=2")
+    assert response.status_code == 200
+    assert len(response.json()) <= 2
+    data = response.json()
+    if data:
+        record = data[0]
+        assert "posting_id" in record
+        assert isinstance(record["posting_id"], int)
